@@ -332,4 +332,26 @@ router.delete("/:item/comments/:comment", auth.required, function(
   }
 });
 
+// filter items by title
+router.get("/filter/:title", auth.optional, function(req, res, next) {
+  Promise.all([
+    req.payload ? User.findById(req.payload.id) : null, // if there is a payload, find the user
+    Item.find({ title: req.params.title }) // find all items with the title
+      .limit(20) // limit to 20
+      .populate("seller") // populate the seller
+      .exec() // execute the query
+  ])
+    .then(function(results) {
+      var user = results[0];
+      var items = results[1];
+
+      return res.json({
+        items: items.map(function(item) {
+          return item.toJSONFor(user);
+        })
+      });
+    } /* if there is an error, pass it to the next middleware */)
+    .catch(next); // catch any errors
+});
+
 module.exports = router;
